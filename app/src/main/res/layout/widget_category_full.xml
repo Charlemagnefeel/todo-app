@@ -1,0 +1,84 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_category_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/widget_category_header"
+        style="@style/WidgetColumnHeader" />
+
+    <LinearLayout
+        android:id="@+id/widget_category_row_1"
+        style="@style/WidgetRow">
+        <LinearLayout style="@style/WidgetTextColumn">
+            <TextView
+                android:id="@+id/widget_category_title_1"
+                style="@style/WidgetTaskTitle" />
+            <TextView
+                android:id="@+id/widget_category_meta_1"
+                style="@style/WidgetTaskMeta" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_category_done_1"
+            style="@style/WidgetDone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_category_row_2"
+        style="@style/WidgetRow">
+        <LinearLayout style="@style/WidgetTextColumn">
+            <TextView
+                android:id="@+id/widget_category_title_2"
+                style="@style/WidgetTaskTitle" />
+            <TextView
+                android:id="@+id/widget_category_meta_2"
+                style="@style/WidgetTaskMeta" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_category_done_2"
+            style="@style/WidgetDone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_category_row_3"
+        style="@style/WidgetRow">
+        <LinearLayout style="@style/WidgetTextColumn">
+            <TextView
+                android:id="@+id/widget_category_title_3"
+                style="@style/WidgetTaskTitle" />
+            <TextView
+                android:id="@+id/widget_category_meta_3"
+                style="@style/WidgetTaskMeta" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_category_done_3"
+            style="@style/WidgetDone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_category_row_4"
+        style="@style/WidgetRow">
+        <LinearLayout style="@style/WidgetTextColumn">
+            <TextView
+                android:id="@+id/widget_category_title_4"
+                style="@style/WidgetTaskTitle" />
+            <TextView
+                android:id="@+id/widget_category_meta_4"
+                style="@style/WidgetTaskMeta" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/widget_category_done_4"
+            style="@style/WidgetDone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_category_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="6dp"
+        android:text="暂无"
+        android:textColor="@color/muted"
+        android:textSize="11sp" />
+</LinearLayout>
