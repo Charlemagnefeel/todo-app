@@ -12,7 +12,9 @@
 
 ## 构建
 
-需要 Android SDK 和 JDK 17+。
+只下载 APK 安装的话，不需要 Android SDK 或 JDK。
+
+下面这些命令是给想从源代码重新打包 APK 的人用的。开发环境需要 Android SDK 和 JDK 17+。
 
 ```bat
 build-debug.bat
