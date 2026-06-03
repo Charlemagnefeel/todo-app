@@ -21,6 +21,7 @@ class TodoItem {
     boolean periodic;
     boolean archived;
     long createdAt;
+    long rank;
     long archivedAt;
     long lastDoneAt;
     ArrayList<Long> checkIns = new ArrayList<>();
@@ -35,6 +36,7 @@ class TodoItem {
         item.periodic = periodic;
         item.archived = false;
         item.createdAt = System.currentTimeMillis();
+        item.rank = item.createdAt;
         item.archivedAt = 0L;
         item.lastDoneAt = 0L;
         item.checkIns = new ArrayList<>();
@@ -55,6 +57,7 @@ class TodoItem {
         json.put("periodic", periodic);
         json.put("archived", archived);
         json.put("createdAt", createdAt);
+        json.put("rank", rank);
         json.put("archivedAt", archivedAt);
         json.put("lastDoneAt", lastDoneAt);
         json.put("checkIns", checkInArray);
@@ -76,6 +79,7 @@ class TodoItem {
         }
         item.archived = json.optBoolean("archived", false);
         item.createdAt = json.optLong("createdAt", System.currentTimeMillis());
+        item.rank = json.optLong("rank", item.createdAt);
         item.archivedAt = json.optLong("archivedAt", 0L);
         item.lastDoneAt = json.optLong("lastDoneAt", 0L);
         item.checkIns = new ArrayList<>();

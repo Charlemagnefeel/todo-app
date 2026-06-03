@@ -77,13 +77,21 @@ public class TodoWidgetProvider extends AppWidgetProvider {
     private static PendingIntent tapTemplate(Context context) {
         Intent intent = new Intent(context, TodoWidgetProvider.class);
         intent.setAction(ACTION_TAP);
-        return PendingIntent.getBroadcast(context, 20_000, intent, pendingFlags());
+        return PendingIntent.getBroadcast(context, 20_000, intent, mutableFlags());
     }
 
     private static int pendingFlags() {
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        return flags;
+    }
+
+    private static int mutableFlags() {
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            flags |= PendingIntent.FLAG_MUTABLE;
         }
         return flags;
     }

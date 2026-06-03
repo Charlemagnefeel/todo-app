@@ -2,14 +2,17 @@ package com.vibetodo.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -40,6 +43,7 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private static final int REQ_EXPORT = 1;
     private static final int REQ_IMPORT = 2;
+    private static final String DRAG_TASK = "todo_task";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable tick = new Runnable() {
@@ -558,6 +562,7 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         cardParams.bottomMargin = dp(8);
         card.setLayoutParams(cardParams);
+        setupDrag(card, item);
 
         LinearLayout topRow = new LinearLayout(this);
         topRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -631,6 +636,48 @@ public class MainActivity extends Activity {
         card.addView(meta);
 
         return card;
+    }
+
+    private void setupDrag(View card, TodoItem item) {
+        if (item.archived) {
+            return;
+        }
+        card.setOnLongClickListener(v -> {
+            ClipData data = ClipData.newPlainText(DRAG_TASK, item.id);
+            View.DragShadowBuilder shadow = new View.DragShadowBuilder(v);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                v.startDragAndDrop(data, shadow, item.id, 0);
+            } else {
+                v.startDrag(data, shadow, item.id, 0);
+            }
+            return true;
+        });
+        card.setOnDragListener((v, event) -> {
+            switch (event.getAction()) {
+                case DragEvent.ACTION_DRAG_STARTED:
+                    return event.getLocalState() instanceof String;
+                case DragEvent.ACTION_DRAG_ENTERED:
+                    v.setAlpha(0.72f);
+                    return true;
+                case DragEvent.ACTION_DRAG_EXITED:
+                case DragEvent.ACTION_DRAG_ENDED:
+                    v.setAlpha(1f);
+                    return true;
+                case DragEvent.ACTION_DROP:
+                    v.setAlpha(1f);
+                    String fromId = (String) event.getLocalState();
+                    boolean after = event.getY() > v.getHeight() / 2f;
+                    if (TodoStore.move(this, fromId, item.id, after)) {
+                        renderLists();
+                        TodoWidgetProvider.updateWidgets(this);
+                    } else if (!item.id.equals(fromId)) {
+                        Toast.makeText(this, "只能在同类别、同长短期内排序", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                default:
+                    return true;
+            }
+        });
     }
 
     private void confirmDelete(TodoItem item) {

@@ -215,6 +215,52 @@ class TodoStore {
         return changed;
     }
 
+    static boolean move(Context context, String fromId, String toId, boolean after) {
+        if (fromId == null || toId == null || fromId.equals(toId)) {
+            return false;
+        }
+
+        List<TodoItem> items = load(context);
+        TodoItem from = null;
+        TodoItem to = null;
+        for (TodoItem item : items) {
+            if (item.id.equals(fromId)) {
+                from = item;
+            } else if (item.id.equals(toId)) {
+                to = item;
+            }
+        }
+        if (from == null || to == null || from.archived || to.archived) {
+            return false;
+        }
+        if (!from.categoryId.equals(to.categoryId) || !from.duration.equals(to.duration)) {
+            return false;
+        }
+
+        ArrayList<TodoItem> group = new ArrayList<>();
+        for (TodoItem item : items) {
+            if (!item.archived
+                    && item.categoryId.equals(from.categoryId)
+                    && item.duration.equals(from.duration)) {
+                group.add(item);
+            }
+        }
+        sortTasks(group);
+        group.remove(from);
+        int index = group.indexOf(to);
+        if (index < 0) {
+            return false;
+        }
+        group.add(after ? index + 1 : index, from);
+
+        long base = System.currentTimeMillis();
+        for (int i = 0; i < group.size(); i++) {
+            group.get(i).rank = base - i;
+        }
+        save(context, items);
+        return true;
+    }
+
     static List<TodoItem> widgetItems(Context context, TodoCategory category, int limit) {
         List<TodoItem> result = widgetItems(context, category);
         if (result.size() > limit) {
@@ -333,6 +379,10 @@ class TodoStore {
                 int duration = durationRank(left.duration) - durationRank(right.duration);
                 if (duration != 0) {
                     return duration;
+                }
+                int rank = Long.compare(right.rank, left.rank);
+                if (rank != 0) {
+                    return rank;
                 }
                 return Long.compare(right.createdAt, left.createdAt);
             }
