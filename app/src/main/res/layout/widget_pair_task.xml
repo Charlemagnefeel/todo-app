@@ -1,0 +1,117 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="46dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:id="@+id/widget_left_cell"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_left_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/ink"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/widget_left_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/muted"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_left_done"
+            android:layout_width="28dp"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:textColor="@color/green"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_left_undo"
+            android:layout_width="26dp"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:text="-"
+            android:textColor="#8A2B2B"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="8dp"
+        android:layout_height="1dp"
+        android:text="" />
+
+    <LinearLayout
+        android:id="@+id/widget_right_cell"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_right_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/ink"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/widget_right_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/muted"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_right_done"
+            android:layout_width="28dp"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:textColor="@color/green"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_right_undo"
+            android:layout_width="26dp"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:text="-"
+            android:textColor="#8A2B2B"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

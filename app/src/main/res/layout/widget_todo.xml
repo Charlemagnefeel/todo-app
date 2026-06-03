@@ -25,10 +25,15 @@
         android:textColor="@color/muted"
         android:textSize="13sp" />
 
-    <LinearLayout
-        android:id="@+id/widget_content"
+    <ListView
+        android:id="@+id/widget_list"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingTop="8dp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:cacheColorHint="@android:color/transparent"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="0dp"
+        android:fadeScrollbars="false"
+        android:paddingTop="8dp"
+        android:scrollbars="vertical" />
 </LinearLayout>

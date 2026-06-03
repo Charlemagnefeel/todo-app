@@ -2,9 +2,11 @@ package com.vibetodo.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,7 +20,17 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,6 +38,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
+    private static final int REQ_EXPORT = 1;
+    private static final int REQ_IMPORT = 2;
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable tick = new Runnable() {
         @Override
@@ -44,6 +59,7 @@ public class MainActivity extends Activity {
     private Button saveBtn;
     private Button cancelBtn;
     private final ArrayList<Button> catBtns = new ArrayList<>();
+    private final ArrayList<Button> sizeBtns = new ArrayList<>();
     private Button shortButton;
     private Button longButton;
     private String catId = TodoCategory.INDOOR_ID;
@@ -71,6 +87,20 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(tick);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        Uri uri = data.getData();
+        if (requestCode == REQ_EXPORT) {
+            writeBackup(uri);
+        } else if (requestCode == REQ_IMPORT) {
+            confirmImport(uri);
+        }
     }
 
     private void buildUi() {
@@ -220,6 +250,27 @@ public class MainActivity extends Activity {
         panel.addView(catPrefs);
         renderCategorySettings();
 
+        panel.addView(label("小组件字号"));
+        LinearLayout sizeRow = row();
+        sizeRow.addView(widgetSizeButton("小", 11), cellParams());
+        sizeRow.addView(widgetSizeButton("中", 13), cellParams());
+        sizeRow.addView(widgetSizeButton("大", 16), cellParams());
+        panel.addView(sizeRow);
+        updateSizeStyles();
+
+        LinearLayout dataRow = row();
+        Button exportBtn = choiceButton("导出数据");
+        exportBtn.setOnClickListener(v -> exportData());
+        Button importBtn = choiceButton("导入数据");
+        importBtn.setOnClickListener(v -> importData());
+        dataRow.addView(exportBtn, cellParams());
+        dataRow.addView(importBtn, cellParams());
+        LinearLayout.LayoutParams dataParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        dataParams.topMargin = dp(10);
+        panel.addView(dataRow, dataParams);
+
         return panel;
     }
 
@@ -296,6 +347,91 @@ public class MainActivity extends Activity {
         renderLists();
         TodoWidgetProvider.updateWidgets(this);
         hideKeyboard();
+    }
+
+    private Button widgetSizeButton(String label, int size) {
+        Button button = choiceButton(label);
+        button.setTag(size);
+        button.setOnClickListener(v -> {
+            TodoStore.setWidgetTextSize(this, (Integer) v.getTag());
+            updateSizeStyles();
+            TodoWidgetProvider.updateWidgets(this);
+        });
+        sizeBtns.add(button);
+        return button;
+    }
+
+    private void exportData() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, "todo-backup-" + new SimpleDateFormat("yyyyMMdd-HHmm", Locale.CHINA).format(new Date()) + ".json");
+        startActivityForResult(intent, REQ_EXPORT);
+    }
+
+    private void importData() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        startActivityForResult(intent, REQ_IMPORT);
+    }
+
+    private void writeBackup(Uri uri) {
+        try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+            if (out == null) {
+                throw new IOException("open output failed");
+            }
+            String raw = TodoStore.exportData(this).toString(2);
+            out.write(raw.getBytes(StandardCharsets.UTF_8));
+            Toast.makeText(this, "数据已导出", Toast.LENGTH_SHORT).show();
+        } catch (IOException | JSONException e) {
+            showError("导出失败");
+        }
+    }
+
+    private void confirmImport(Uri uri) {
+        new AlertDialog.Builder(this)
+                .setTitle("导入数据")
+                .setMessage("导入会覆盖当前所有任务和类别，确定继续吗？")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("导入", (dialog, which) -> readBackup(uri))
+                .show();
+    }
+
+    private void readBackup(Uri uri) {
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) {
+                throw new IOException("open input failed");
+            }
+            TodoStore.importData(this, new JSONObject(readAll(in)));
+            resetForm();
+            renderCategoryChoices();
+            renderCategorySettings();
+            updateSizeStyles();
+            renderLists();
+            TodoWidgetProvider.updateWidgets(this);
+            Toast.makeText(this, "数据已导入", Toast.LENGTH_SHORT).show();
+        } catch (IOException | JSONException e) {
+            showError("导入失败，请确认文件是待办备份");
+        }
+    }
+
+    private String readAll(InputStream in) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+        StringBuilder builder = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            builder.append(line);
+        }
+        return builder.toString();
+    }
+
+    private void showError(String message) {
+        new AlertDialog.Builder(this)
+                .setTitle("出错了")
+                .setMessage(message)
+                .setPositiveButton("知道了", null)
+                .show();
     }
 
     private void saveTask() {
@@ -452,6 +588,24 @@ public class MainActivity extends Activity {
         deleteParams.rightMargin = dp(8);
         topRow.addView(delete, deleteParams);
 
+        if (item.periodic && !item.archived) {
+            Button undo = new Button(this);
+            undo.setAllCaps(false);
+            undo.setText("-1");
+            undo.setTextSize(14);
+            undo.setTextColor(item.checkInCount() > 0 ? Color.parseColor("#8A2B2B") : Color.parseColor("#AAA49A"));
+            undo.setBackground(bg(Color.TRANSPARENT, 8, Color.parseColor("#E1C5C5")));
+            undo.setEnabled(item.checkInCount() > 0);
+            undo.setOnClickListener(v -> {
+                TodoStore.undoCheckIn(this, item.id);
+                renderLists();
+                TodoWidgetProvider.updateWidgets(this);
+            });
+            LinearLayout.LayoutParams undoParams = new LinearLayout.LayoutParams(dp(54), dp(42));
+            undoParams.rightMargin = dp(8);
+            topRow.addView(undo, undoParams);
+        }
+
         Button action = new Button(this);
         action.setAllCaps(false);
         action.setText(item.archived ? "还原" : item.periodic ? "打卡" : "✓");
@@ -589,6 +743,14 @@ public class MainActivity extends Activity {
         }
         styleChoice(shortButton, TodoItem.DURATION_SHORT.equals(duration));
         styleChoice(longButton, TodoItem.DURATION_LONG.equals(duration));
+    }
+
+    private void updateSizeStyles() {
+        int size = TodoStore.widgetTextSize(this);
+        for (Button button : sizeBtns) {
+            Object tag = button.getTag();
+            styleChoice(button, tag instanceof Integer && ((Integer) tag) == size);
+        }
     }
 
     private void styleChoice(Button button, boolean selected) {

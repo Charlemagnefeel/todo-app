@@ -16,6 +16,7 @@ class TodoStore {
     private static final String PREFS_NAME = "vibe_todo";
     private static final String KEY_ITEMS = "items";
     private static final String KEY_CATEGORIES = "categories";
+    private static final String KEY_WIDGET_TEXT_SIZE = "widget_text_size";
 
     static List<TodoItem> load(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -139,6 +140,22 @@ class TodoStore {
         return changed;
     }
 
+    static boolean undoCheckIn(Context context, String id) {
+        List<TodoItem> items = load(context);
+        boolean changed = false;
+        for (TodoItem item : items) {
+            if (item.id.equals(id) && item.periodic && item.checkInCount() > 0) {
+                item.undoCheckIn();
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            save(context, items);
+        }
+        return changed;
+    }
+
     static boolean update(Context context, String id, String title, String categoryId, String duration) {
         List<TodoItem> items = load(context);
         boolean changed = false;
@@ -199,6 +216,14 @@ class TodoStore {
     }
 
     static List<TodoItem> widgetItems(Context context, TodoCategory category, int limit) {
+        List<TodoItem> result = widgetItems(context, category);
+        if (result.size() > limit) {
+            return new ArrayList<>(result.subList(0, limit));
+        }
+        return result;
+    }
+
+    static List<TodoItem> widgetItems(Context context, TodoCategory category) {
         List<TodoItem> all = load(context);
         ArrayList<TodoItem> result = new ArrayList<>();
         for (TodoItem item : all) {
@@ -207,10 +232,92 @@ class TodoStore {
             }
         }
         sortTasks(result);
-        if (result.size() > limit) {
-            return new ArrayList<>(result.subList(0, limit));
+        return result;
+    }
+
+    static List<TodoItem> widgetItems(Context context, TodoCategory category, String duration) {
+        ArrayList<TodoItem> result = new ArrayList<>();
+        for (TodoItem item : widgetItems(context, category)) {
+            if (duration.equals(item.duration)) {
+                result.add(item);
+            }
         }
         return result;
+    }
+
+    static int widgetTextSize(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        int size = prefs.getInt(KEY_WIDGET_TEXT_SIZE, 13);
+        if (size < 11) {
+            return 11;
+        }
+        return Math.min(size, 18);
+    }
+
+    static void setWidgetTextSize(Context context, int size) {
+        int clamped = Math.max(11, Math.min(size, 18));
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putInt(KEY_WIDGET_TEXT_SIZE, clamped)
+                .apply();
+    }
+
+    static JSONObject exportData(Context context) throws JSONException {
+        JSONObject data = new JSONObject();
+        JSONArray itemArray = new JSONArray();
+        for (TodoItem item : load(context)) {
+            itemArray.put(item.toJson());
+        }
+        JSONArray categoryArray = new JSONArray();
+        for (TodoCategory category : loadCategories(context)) {
+            categoryArray.put(category.toJson());
+        }
+        data.put("version", 2);
+        data.put("exportedAt", System.currentTimeMillis());
+        data.put(KEY_ITEMS, itemArray);
+        data.put(KEY_CATEGORIES, categoryArray);
+        data.put(KEY_WIDGET_TEXT_SIZE, widgetTextSize(context));
+        return data;
+    }
+
+    static void importData(Context context, JSONObject data) throws JSONException {
+        JSONArray itemArray = data.optJSONArray(KEY_ITEMS);
+        JSONArray categoryArray = data.optJSONArray(KEY_CATEGORIES);
+        if (itemArray == null || categoryArray == null) {
+            throw new JSONException("backup missing items or categories");
+        }
+
+        ArrayList<TodoItem> items = new ArrayList<>();
+        for (int i = 0; i < itemArray.length(); i++) {
+            JSONObject json = itemArray.optJSONObject(i);
+            if (json != null) {
+                TodoItem item = TodoItem.fromJson(json);
+                if (!item.id.isEmpty() && !item.title.isEmpty()) {
+                    items.add(item);
+                }
+            }
+        }
+
+        ArrayList<TodoCategory> categories = new ArrayList<>();
+        for (int i = 0; i < categoryArray.length(); i++) {
+            JSONObject json = categoryArray.optJSONObject(i);
+            if (json != null) {
+                TodoCategory category = TodoCategory.fromJson(json);
+                if (!category.id.isEmpty() && !category.name.isEmpty()) {
+                    categories.add(category);
+                }
+            }
+        }
+        ensureBuiltInCategories(categories);
+
+        SharedPreferences.Editor editor = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+        editor.putString(KEY_ITEMS, itemsToJson(items).toString());
+        editor.putString(KEY_CATEGORIES, categoriesToJson(categories).toString());
+        if (data.has(KEY_WIDGET_TEXT_SIZE)) {
+            int size = Math.max(11, Math.min(data.optInt(KEY_WIDGET_TEXT_SIZE, 13), 18));
+            editor.putInt(KEY_WIDGET_TEXT_SIZE, size);
+        }
+        editor.apply();
     }
 
     static List<TodoItem> sorted(List<TodoItem> source) {
@@ -264,6 +371,20 @@ class TodoStore {
     }
 
     private static void save(Context context, List<TodoItem> items) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_ITEMS, itemsToJson(items).toString())
+                .apply();
+    }
+
+    private static void saveCategories(Context context, List<TodoCategory> categories) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_CATEGORIES, categoriesToJson(categories).toString())
+                .apply();
+    }
+
+    private static JSONArray itemsToJson(List<TodoItem> items) {
         JSONArray array = new JSONArray();
         for (TodoItem item : items) {
             try {
@@ -271,13 +392,10 @@ class TodoStore {
             } catch (JSONException ignored) {
             }
         }
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_ITEMS, array.toString())
-                .apply();
+        return array;
     }
 
-    private static void saveCategories(Context context, List<TodoCategory> categories) {
+    private static JSONArray categoriesToJson(List<TodoCategory> categories) {
         JSONArray array = new JSONArray();
         for (TodoCategory category : categories) {
             try {
@@ -285,9 +403,6 @@ class TodoStore {
             } catch (JSONException ignored) {
             }
         }
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_CATEGORIES, array.toString())
-                .apply();
+        return array;
     }
 }

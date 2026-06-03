@@ -101,6 +101,13 @@ class TodoItem {
         lastDoneAt = time;
     }
 
+    void undoCheckIn() {
+        if (!checkIns.isEmpty()) {
+            checkIns.remove(0);
+        }
+        lastDoneAt = checkIns.isEmpty() ? 0L : checkIns.get(0);
+    }
+
     int checkInCount() {
         return checkIns.size();
     }
